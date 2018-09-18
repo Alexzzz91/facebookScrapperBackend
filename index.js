@@ -108,6 +108,7 @@ app.post('/resendToSpreadSheets', function (req, res) {
       includeGridData: false,  // TODO: Update placeholder value.
     };
     sheets.spreadsheets.get(request, function(err, response) {
+      let sheetOld = '';
       if (err) {
         console.error(err);
         return;
@@ -115,9 +116,9 @@ app.post('/resendToSpreadSheets', function (req, res) {
       sheet = response.data.sheets[0].properties.title;
       sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: sheet
+        range: "A1:Z1000",
       }, (err, res) => {
-        if (err) return console.log('The API returned an error: ' + err);
+        if (err) console.log('sheets.spreadsheets.get The API returned an error: ' + err);
         const rows = res.data.values;
         if(!!rows && !!rows.length){
           range = rows.length;
@@ -135,13 +136,13 @@ app.post('/resendToSpreadSheets', function (req, res) {
     range = range+1
     sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: sheet+'!A'+range,
-      valueInputOption: 'RAW',
+      range: "A"+range,
+      valueInputOption: "RAW",
       resource,
     }, (err, result) => {
       if (err) {
         // Handle error
-        console.log(err);
+        console.log('sheets.spreadsheets.values.update The API returned an error: ' + err);
       } else {
         //console.log('result', result);
       }
