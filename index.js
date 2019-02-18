@@ -3,6 +3,21 @@ const fs = require('fs');
 const readline = require('readline');
 const {google} = require('googleapis');
 const bodyParser = require('body-parser')
+const mongoose = require('mongoose');
+
+mongoose.connect('mongodb://localhost/my_database', { useNewUrlParser: true });
+
+const Schema = mongoose.Schema;
+const ObjectId = Schema.ObjectId;
+
+const Base = new Schema({
+  userId: ObjectId,
+  userEmail: String,
+  spreadsheetsUrl: String,
+  getAllEntities: Boolean,
+});
+
+const BaseModel = mongoose.model('Base', Base);
 
 let sheet;
 
@@ -18,6 +33,13 @@ app.get('/', function (req, res) {
   res.send('Hello World!');
 });
 
+app.get('/get_settings/:userEmail/', function (req, res) {
+  var userEmail = req.params.userEmail;
+  BaseModel.findOne({ userEmail }, function (err, settings) {
+    res.send({settings});
+  });
+});
+
 app.get('/goauthcallback', function (req, res) {
   if(!!req.query.code){
     res.send('code      |     ' + req.query.code);
@@ -27,7 +49,23 @@ app.get('/goauthcallback', function (req, res) {
 
 app.post('/resendToSpreadSheets', function (req, res) {
   const data = req.body.data;
-  const spreadsheetId = req.body.spreadsheetsUrl.match(/\/d\/([\w-]+)\//)[1];
+
+  const userEmail = req.body.userEmail;
+  const spreadsheetsUrl = req.body.spreadsheetsUrl;
+  const spreadsheetId = spreadsheetsUrl.match(/\/d\/([\w-]+)\//)[1];
+  const getAllEntities = req.body.getAllEntities;
+
+  if (userEmail) {
+    BaseModel.create({ 
+      userEmail, 
+      getAllEntities,
+      spreadsheetsUrl,
+    }, function (err, settings) {
+      if (err) {
+        console.log('err', err);
+      }
+    });
+  }
   // If modifying these scopes, delete token.json.
   const SCOPES = [
     'https://www.googleapis.com/auth/drive',
@@ -75,7 +113,9 @@ app.post('/resendToSpreadSheets', function (req, res) {
       access_type: 'offline',
       scope: SCOPES,
     });
+    
     console.log('Authorize this app by visiting this url:', authUrl);
+    
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
@@ -116,7 +156,7 @@ app.post('/resendToSpreadSheets', function (req, res) {
       sheet = response.data.sheets[0].properties.title;
       sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: "A1:Z1000",
+        range: "A1:Z10000000",
       }, (err, res) => {
         if (err) console.log('sheets.spreadsheets.get The API returned an error: ' + err);
         const rows = res.data.values;
@@ -131,6 +171,10 @@ app.post('/resendToSpreadSheets', function (req, res) {
   }
 
   function writing(auth, range, sheet) {
+    if (range > 1) {
+      data.splice(0, 1);
+    }
+
     const resource = { values: data };
     const sheets = google.sheets({version: 'v4', auth});
     range = range+1
@@ -152,6 +196,4 @@ app.post('/resendToSpreadSheets', function (req, res) {
   res.send('Got a POST request');
 });
 
-app.listen(3000, function () {
-  console.log('Example app listening on port 3000!');
-});
+app.listen(3000);
