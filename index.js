@@ -171,9 +171,9 @@ app.post('/resendToSpreadSheets', function (req, res) {
   }
 
   function writing(auth, range, sheet) {
-    if (range > 1) {
-      data.splice(0, 1);
-    }
+    // if (range > 1) {
+    //   data.splice(0, 1);
+    // }
 
     const resource = { values: data };
     const sheets = google.sheets({version: 'v4', auth});
