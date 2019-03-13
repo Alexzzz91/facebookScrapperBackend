@@ -15,6 +15,7 @@ const Base = new Schema({
   userEmail: String,
   spreadsheetsUrl: String,
   getAllEntities: Boolean,
+  created_at: Date,
 });
 
 const BaseModel = mongoose.model('Base', Base);
@@ -33,7 +34,7 @@ app.get('/', function (req, res) {
 
 app.get('/get_settings/:userEmail/', function (req, res) {
   var userEmail = req.params.userEmail;
-  BaseModel.findOne({ userEmail }, function (err, settings) {
+  BaseModel.findOne({ userEmail }).sort({$natural: -1}).limit(1).exec(function(err, settings){
     res.send({settings});
   });
 });
@@ -44,6 +45,7 @@ app.get('/goauthcallback', function (req, res) {
   }
   res.send('Error not has code');
 });
+
 
 app.post('/resendToSpreadSheets', function (req, res) {
   const data = req.body.data;
